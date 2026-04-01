@@ -25,7 +25,8 @@ export default function Navbar() {
             return res.data.data;
         },
         enabled: !!session?.accessToken,
-        staleTime: 60 * 1000,
+        staleTime: 0, // Always fetch fresh to check stock availability
+        refetchOnWindowFocus: true, // Refetch when user switches tabs back
         retry: false,
     });
 

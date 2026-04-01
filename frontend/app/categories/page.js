@@ -1,23 +1,24 @@
-'use client';
-
-import { useQuery } from '@tanstack/react-query';
-import { productsAPI } from '@/lib/api';
-import { QUERY_KEYS } from '@/lib/queryClient';
 import Link from 'next/link';
 import { FiArrowRight } from 'react-icons/fi';
-import ProductCard from '@/components/product/ProductCard';
 
-export default function CategoriesPage() {
-    const { data, isLoading } = useQuery({
-        queryKey: QUERY_KEYS.categories,
-        queryFn: async () => {
-            const res = await productsAPI.getCategories();
-            return res.data.data;
-        },
-        staleTime: 60 * 1000,
-    });
+// Cache all categories for 24 hours at the Edge
+export const revalidate = 86400;
 
-    const categories = data?.results || data || [];
+async function getCategories() {
+    try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/`, {
+            next: { tags: ['categories'] } // Allows on-demand revalidation from Django
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.data?.results || data.data || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+export default async function CategoriesPage() {
+    const categories = await getCategories();
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-12">
@@ -26,12 +27,8 @@ export default function CategoriesPage() {
                 <h1 className="font-cormorant text-4xl sm:text-5xl text-noir">All Collections</h1>
             </div>
 
-            {isLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="skeleton aspect-[3/4]" />
-                    ))}
-                </div>
+            {categories.length === 0 ? (
+                <div className="text-center py-20 text-mid">No categories found.</div>
             ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {categories.map((cat) => (
@@ -45,15 +42,15 @@ export default function CategoriesPage() {
                                     <h2 className="font-cormorant text-2xl text-noir group-hover:text-deep-rose transition-colors mb-2">
                                         {cat.name}
                                     </h2>
-                                    <p className="text-xs text-mid font-light mb-3">{cat.product_count} products</p>
+                                    <p className="text-xs text-mid font-light mb-3">{cat.product_count || 0} products</p>
                                     {cat.subcategories?.length > 0 && (
-                                        <div className="space-y-1 mb-4">
+                                        <div className="space-y-1 mb-4 hidden sm:block">
                                             {cat.subcategories.slice(0, 3).map((sub) => (
                                                 <p key={sub.id} className="text-xs text-mid/60">{sub.name}</p>
                                             ))}
                                         </div>
                                     )}
-                                    <span className="inline-flex items-center text-xs text-deep-rose font-jost tracking-wider uppercase">
+                                    <span className="inline-flex items-center text-xs text-deep-rose font-jost tracking-wider uppercase mt-2">
                                         Shop Now <FiArrowRight className="ml-1" size={12} />
                                     </span>
                                 </div>

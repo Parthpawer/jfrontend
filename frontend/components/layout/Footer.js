@@ -46,9 +46,8 @@ export default function Footer() {
                             {[
                                 { label: 'My Account', href: '/account' },
                                 { label: 'Track Order', href: '/account/orders' },
-                                { label: 'Shipping Policy', href: '#' },
-                                { label: 'Returns & Exchange', href: '#' },
-                                { label: 'Size Guide', href: '#' },
+                                { label: 'Store Policies', href: '/policies' },
+                                { label: 'Terms & Conditions', href: '/terms' },
                             ].map((item) => (
                                 <li key={item.label}>
                                     <Link
@@ -89,7 +88,7 @@ export default function Footer() {
             <div className="border-t border-petal/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <p className="text-xs text-petal/40">
-                        © {new Date().getFullYear()} Lumière Jewels. All rights reserved.
+                        © {new Date().getFullYear()} Tvisaa Jewels. All rights reserved.
                     </p>
                     <div className="flex items-center space-x-4 text-xs text-petal/40">
                         <span>Free Shipping on All Orders</span>

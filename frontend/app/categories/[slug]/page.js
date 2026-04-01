@@ -1,35 +1,54 @@
-'use client';
-
-import { useParams, useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { productsAPI } from '@/lib/api';
 import ProductCard from '@/components/product/ProductCard';
 import Link from 'next/link';
 
-export default function CategoryPage() {
-    const { slug } = useParams();
-    const searchParams = useSearchParams();
+// Cache all category pages for 1 hour
+export const revalidate = 3600;
 
-    const { data: categoryProducts, isLoading } = useQuery({
-        queryKey: ['categoryProducts', slug],
-        queryFn: async () => {
-            const res = await productsAPI.getCategoryProducts(slug);
-            return res.data.data;
-        },
-        staleTime: 60 * 1000,
+// Pre-build all category routes at deploy time for instant load
+export async function generateStaticParams() {
+    try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        const categories = data.data?.results || data.data || [];
+        return categories.map((cat) => ({
+            slug: cat.slug,
+        }));
+    } catch (e) {
+        return [];
+    }
+}
+
+async function getCategoryProducts(slug, sub) {
+    const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/categories/${slug}/products/`);
+    if (sub) url.searchParams.append('sub', sub);
+
+    const res = await fetch(url.toString(), {
+        next: { tags: ['products'] }
     });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.data?.results || data.data || [];
+}
 
-    const { data: subcategories } = useQuery({
-        queryKey: ['subcategories', slug],
-        queryFn: async () => {
-            const res = await productsAPI.getCategorySubcategories(slug);
-            return res.data.data;
-        },
-        staleTime: 60 * 1000,
+async function getSubcategories(slug) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/${slug}/subcategories/`, {
+        next: { tags: ['categories'] }
     });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.data || [];
+}
 
-    const products = categoryProducts?.results || categoryProducts || [];
-    const subs = subcategories || [];
+export default async function CategoryPage({ params, searchParams }) {
+    const { slug } = params;
+
+    // Server-side fetching — runs strictly on the Edge/Server!
+    const [products, subs] = await Promise.all([
+        getCategoryProducts(slug, searchParams?.sub),
+        getSubcategories(slug)
+    ]);
+
     const categoryName = slug.charAt(0).toUpperCase() + slug.slice(1);
 
     return (
@@ -40,12 +59,15 @@ export default function CategoryPage() {
                 <h1 className="font-cormorant text-4xl sm:text-5xl text-noir">{categoryName}</h1>
             </div>
 
-            {/* Subcategories */}
+            {/* Subcategories Filters */}
             {subs.length > 0 && (
                 <div className="flex items-center justify-center gap-3 mb-10 flex-wrap">
                     <Link
                         href={`/categories/${slug}`}
-                        className="px-5 py-2 text-sm bg-deep-rose text-white font-jost tracking-wide"
+                        className={`px-5 py-2 text-sm font-jost tracking-wide transition-colors ${!searchParams?.sub
+                                ? 'bg-deep-rose text-white'
+                                : 'border border-blush text-mid hover:text-noir hover:border-deep-rose/30'
+                            }`}
                     >
                         All
                     </Link>
@@ -53,7 +75,10 @@ export default function CategoryPage() {
                         <Link
                             key={sub.id}
                             href={`/categories/${slug}?sub=${sub.slug}`}
-                            className="px-5 py-2 text-sm border border-blush text-mid hover:text-noir hover:border-deep-rose/30 font-jost tracking-wide transition-colors"
+                            className={`px-5 py-2 text-sm font-jost tracking-wide transition-colors ${searchParams?.sub === sub.slug
+                                    ? 'bg-deep-rose text-white'
+                                    : 'border border-blush text-mid hover:text-noir hover:border-deep-rose/30'
+                                }`}
                         >
                             {sub.name}
                         </Link>
@@ -62,17 +87,7 @@ export default function CategoryPage() {
             )}
 
             {/* Products grid */}
-            {isLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                        <div key={i} className="space-y-3">
-                            <div className="skeleton aspect-square" />
-                            <div className="skeleton h-4 w-3/4" />
-                            <div className="skeleton h-4 w-1/3" />
-                        </div>
-                    ))}
-                </div>
-            ) : products.length > 0 ? (
+            {products.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {products.map((product) => (
                         <ProductCard key={product.id} product={product} />
