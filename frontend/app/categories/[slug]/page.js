@@ -7,7 +7,9 @@ export const revalidate = 3600;
 // Pre-build all category routes at deploy time for instant load
 export async function generateStaticParams() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) return [];
+        const res = await fetch(`${apiUrl}/categories/`);
         if (!res.ok) return [];
         const data = await res.json();
         const categories = data.data?.results || data.data || [];
@@ -20,24 +22,35 @@ export async function generateStaticParams() {
 }
 
 async function getCategoryProducts(slug, sub) {
-    const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/categories/${slug}/products/`);
-    if (sub) url.searchParams.append('sub', sub);
-
-    const res = await fetch(url.toString(), {
-        next: { tags: ['products'] }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.data?.results || data.data || [];
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) return [];
+        const url = new URL(`${apiUrl}/categories/${slug}/products/`);
+        if (sub) url.searchParams.append('sub', sub);
+        const res = await fetch(url.toString(), {
+            next: { tags: ['products'] }
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.data?.results || data.data || [];
+    } catch (e) {
+        return [];
+    }
 }
 
 async function getSubcategories(slug) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/${slug}/subcategories/`, {
-        next: { tags: ['categories'] }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.data || [];
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) return [];
+        const res = await fetch(`${apiUrl}/categories/${slug}/subcategories/`, {
+            next: { tags: ['categories'] }
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.data || [];
+    } catch (e) {
+        return [];
+    }
 }
 
 export default async function CategoryPage({ params, searchParams }) {

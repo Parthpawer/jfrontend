@@ -1,4 +1,4 @@
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, revalidatePath } from 'next/cache';
 
 export async function POST(request) {
     try {
@@ -10,12 +10,15 @@ export async function POST(request) {
             return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         }
 
-        if (!tag) {
-            return new Response(JSON.stringify({ error: 'Missing cache tag' }), { status: 400 });
+        if (tag) {
+            revalidateTag(tag);
         }
-
-        // Purge the cache!
-        revalidateTag(tag);
+        
+        // As a fallback, completely reconstruct the homepage cache
+        revalidatePath('/');
+        // Revalidate the overall products pages as well
+        revalidatePath('/products');
+        revalidatePath('/categories/[slug]', 'page');
 
         return new Response(JSON.stringify({
             revalidated: true,
