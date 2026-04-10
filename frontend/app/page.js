@@ -4,11 +4,14 @@ import HeroSliderClient from '@/components/home/HeroSliderClient';
 import HappyCustomersClient from '@/components/home/HappyCustomersClient';
 import ProductCard from '@/components/product/ProductCard';
 
-export const revalidate = 3600; // 1 hr Cache length
+// Cache indefinitely and refresh only via on-demand revalidation tags.
+export const revalidate = false;
 
 async function getHeroSliders() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/hero/`, { next: { tags: ['hero'] } });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/hero/`, {
+            next: { tags: ['hero'] },
+        });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.results || json.data || [];
@@ -17,7 +20,9 @@ async function getHeroSliders() {
 
 async function getBestsellers() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/bestsellers/`, { next: { tags: ['products'] } });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/bestsellers/`, {
+            next: { tags: ['products'] },
+        });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.results || json.data || [];
@@ -26,7 +31,9 @@ async function getBestsellers() {
 
 async function getQuickPicks() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/quick-picks/`, { next: { tags: ['products'] } });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/quick-picks/`, {
+            next: { tags: ['products'] },
+        });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.results || json.data || [];
@@ -35,7 +42,9 @@ async function getQuickPicks() {
 
 async function getNewArrivals() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/new-arrivals/`, { next: { tags: ['products'] } });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/new-arrivals/`, {
+            next: { tags: ['products'] },
+        });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.results || json.data || [];
@@ -44,7 +53,9 @@ async function getNewArrivals() {
 
 async function getInstagramPosts() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/instagram/`, { next: { tags: ['instagram'] } });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/instagram/`, {
+            next: { tags: ['instagram'] },
+        });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.results || json.data || [];
