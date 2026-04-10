@@ -4,8 +4,9 @@ import HeroSliderClient from '@/components/home/HeroSliderClient';
 import HappyCustomersClient from '@/components/home/HappyCustomersClient';
 import ProductCard from '@/components/product/ProductCard';
 
-// Cache indefinitely and refresh only via on-demand revalidation tags.
-export const revalidate = false;
+// Primary strategy: on-demand tag revalidation from backend.
+// Safety fallback: auto-refresh every 60s if webhook revalidation fails.
+export const revalidate = 60;
 
 async function getHeroSliders() {
     try {
