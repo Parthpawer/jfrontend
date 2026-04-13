@@ -133,7 +133,7 @@ export default async function HomePage() {
             <section className="pb-20 lg:pb-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-end mb-10">
                     <div>
-                        <h2 className="font-cormorant text-3xl md:text-5xl text-noir mb-3">Quick Picks</h2>
+                        <h2 className="font-cormorant text-3xl md:text-5xl text-noir mb-3">Explore</h2>
                         <p className="text-mid font-light font-jost text-sm md:text-base">Handpicked favorites selected by our experts.</p>
                     </div>
                     <Link href="/products" className="hidden sm:flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir hover:text-deep-rose transition-colors">

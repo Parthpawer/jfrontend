@@ -90,6 +90,7 @@ export default function Navbar() {
 
                         {/* Desktop nav */}
                         <nav className="hidden lg:flex items-center space-x-8">
+                            <Link href={'/'}>Home</Link>
                             {navLinks.map((link) => (
                                 <Link
                                     key={link.href}

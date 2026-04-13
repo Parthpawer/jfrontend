@@ -59,8 +59,9 @@ export default function ProductDetailClient({ product }) {
     const accordions = [
         { key: 'description', title: 'Description', content: product.description },
         { key: 'metal', title: 'Metal Details', content: `Material: ${selectedVariant?.metal_type || 'Select a variant'}\nPurity: BIS Hallmarked\nCertification: HUID Certified` },
-        { key: 'size', title: 'Size Guide', content: 'Please refer to our size chart. For rings, measure the inner diameter of a ring that fits well. For bangles, measure your wrist circumference.' },
-        { key: 'shipping', title: 'Shipping & Returns', content: 'Free shipping on all orders. Delivered within 3-5 business days. 30-day hassle-free returns and lifetime exchange policy.' },
+        { key: 'styling', title: 'Styling', content: product.styling || 'No styling information available.' },
+        // { key: 'size', title: 'Size Guide', content: 'Please refer to our size chart. For rings, measure the inner diameter of a ring that fits well. For bangles, measure your wrist circumference.' },
+        { key: 'shipping', title: 'Shipping & Returns', content: 'Free shipping on all orders. Delivered within 3-5 business days.' },
     ];
 
     return (
@@ -178,12 +179,12 @@ export default function ProductDetailClient({ product }) {
                     )}
 
                     {/* Stock indicator */}
-                    {selectedVariant && currentStock > 0 && currentStock < 5 && (
+                    {/* {selectedVariant && currentStock > 0 && currentStock < 5 && (
                         <p className="text-sm text-deep-rose font-medium mb-4 flex items-center gap-1">
                             <span className="w-2 h-2 bg-deep-rose rounded-full animate-pulse" />
                             Only {currentStock} left in stock
                         </p>
-                    )}
+                    )} */}
 
                     {/* Add to cart & Wishlist */}
                     <div className="flex gap-3 mb-8 mt-6">
@@ -224,7 +225,7 @@ export default function ProductDetailClient({ product }) {
 
                     {/* Trust badges */}
                     <div className="flex items-center gap-4 text-xs text-mid mb-8 pb-8 border-b border-blush/50">
-                        {['BIS Hallmarked', 'Free Shipping', '30-Day Returns'].map((badge) => (
+                        {['Free Shipping'].map((badge) => (
                             <span key={badge} className="flex items-center gap-1">
                                 <FiCheck size={12} className="text-green-600" /> {badge}
                             </span>
