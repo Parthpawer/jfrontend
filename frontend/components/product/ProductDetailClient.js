@@ -4,20 +4,19 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-import { FiHeart, FiShoppingBag, FiChevronDown, FiChevronUp, FiCheck } from 'react-icons/fi';
+import { ShoppingBag, Heart, ShieldCheck, Award, Lock } from 'lucide-react';
 import { cartAPI, wishlistAPI } from '@/lib/api';
 import { QUERY_KEYS } from '@/lib/queryClient';
 import { useCart } from '@/providers/CartProvider';
 import toast from 'react-hot-toast';
-
+import { FiTruck } from 'react-icons/fi';
 export default function ProductDetailClient({ product }) {
     const { data: session } = useSession();
     const { openCart } = useCart();
     const queryClient = useQueryClient();
 
     const [selectedVariant, setSelectedVariant] = useState(null);
-    const [selectedImage, setSelectedImage] = useState(0);
-    const [openAccordion, setOpenAccordion] = useState('description');
+    const [activeImage, setActiveImage] = useState(0);
 
     useEffect(() => {
         if (product?.variants?.length > 0 && !selectedVariant) {
@@ -48,212 +47,278 @@ export default function ProductDetailClient({ product }) {
 
     const images = product.images || [];
     const variants = product.variants || [];
-    const metalTypes = [...new Set(variants.map((v) => v.metal_type))];
+    const coatingsMap = new Map();
+    variants.forEach(v => {
+        if (v.coating && !coatingsMap.has(v.coating.name)) {
+            coatingsMap.set(v.coating.name, v.coating);
+        } else if (!v.coating && v.metal_type && !coatingsMap.has(v.metal_type)) {
+            coatingsMap.set(v.metal_type, { name: v.metal_type, color_rgb: 'transparent' });
+        }
+    });
+    const coatings = Array.from(coatingsMap.values());
+
+    // Size based on selected metal type
     const sizes = selectedVariant
-        ? [...new Set(variants.filter((v) => v.metal_type === selectedVariant.metal_type).map((v) => v.size).filter(Boolean))]
+        ? [...new Set(variants.filter((v) => 
+            (v.coating && selectedVariant.coating && v.coating.name === selectedVariant.coating.name) ||
+            (!v.coating && v.metal_type === selectedVariant.metal_type)
+          ).map((v) => v.size).filter(Boolean))]
         : [];
 
     const currentPrice = selectedVariant?.price || product.base_price;
     const currentStock = selectedVariant?.stock || 0;
-
-    const accordions = [
-        { key: 'description', title: 'Description', content: product.description },
-        { key: 'metal', title: 'Metal Details', content: `Material: ${selectedVariant?.metal_type || 'Select a variant'}\nPurity: BIS Hallmarked\nCertification: HUID Certified` },
-        { key: 'styling', title: 'Styling', content: product.styling || 'No styling information available.' },
-        // { key: 'size', title: 'Size Guide', content: 'Please refer to our size chart. For rings, measure the inner diameter of a ring that fits well. For bangles, measure your wrist circumference.' },
-        { key: 'shipping', title: 'Shipping & Returns', content: 'Free shipping on all orders. Delivered within 3-5 business days.' },
-    ];
+    const isDiscounted = !!product.discounted_price;
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-                {/* Left — Image Gallery */}
-                <div>
-                    <div className="relative aspect-square bg-petal mb-4 overflow-hidden">
-                        {images[selectedImage] ? (
-                            <Image
-                                src={images[selectedImage].cloudinary_url}
-                                alt={product.name}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 1024px) 100vw, 50vw"
-                                priority
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <FiShoppingBag size={64} className="text-blush" />
-                            </div>
-                        )}
-                    </div>
-                    {/* Thumbnails */}
-                    {images.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto">
-                            {images.map((img, idx) => (
-                                <button
-                                    key={img.id}
-                                    onClick={() => setSelectedImage(idx)}
-                                    className={`relative w-20 h-20 flex-shrink-0 border-2 transition-colors ${selectedImage === idx ? 'border-deep-rose' : 'border-transparent hover:border-blush'
-                                        }`}
-                                >
-                                    <Image
-                                        src={img.cloudinary_url}
-                                        alt={`${product.name} ${idx + 1}`}
-                                        fill
-                                        className="object-cover"
-                                        sizes="80px"
-                                    />
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Right — Product Info */}
-                <div>
-                    <p className="text-xs text-mid uppercase tracking-[0.2em] font-jost mb-2">
-                        {product.category_name}
-                        {product.subcategory_name && ` · ${product.subcategory_name}`}
-                    </p>
-                    <h1 className="font-cormorant text-3xl lg:text-4xl text-noir mb-2">
-                        {product.name}
-                    </h1>
-                    {selectedVariant && (
-                        <p className="text-sm text-mid font-light mb-4">{selectedVariant.metal_type}</p>
-                    )}
-
-                    {/* Price */}
-                    <p className="font-jost text-2xl font-medium text-noir mb-6">
-                        ₹{Number(currentPrice).toLocaleString('en-IN')}
-                    </p>
-
-                    {/* Metal Type selector */}
-                    {metalTypes.length > 0 && (
-                        <div className="mb-6">
-                            <p className="text-xs text-mid uppercase tracking-wider mb-3">Metal Type</p>
-                            <div className="flex gap-2 flex-wrap">
-                                {metalTypes.map((metal) => (
+        <div className="min-h-screen bg-[#FCF9F6] text-[#2D2D2D] font-sans selection:bg-[#B76E79] selection:text-white pb-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+                <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-start">
+                    
+                    {/* 1. Hero & Media Gallery */}
+                    <div className="flex flex-col-reverse lg:flex-row gap-4 xl:gap-8 lg:sticky lg:top-12">
+                        {/* Thumbnails */}
+                        {images.length > 1 && (
+                            <div className="flex lg:flex-col gap-4 overflow-x-auto lg:overflow-visible py-2 lg:py-0 w-full lg:w-24 shrink-0 scrollbar-hide">
+                                {images.map((img, idx) => (
                                     <button
-                                        key={metal}
-                                        onClick={() => {
-                                            const v = variants.find((v) => v.metal_type === metal);
-                                            if (v) setSelectedVariant(v);
-                                        }}
-                                        className={`px-4 py-2 text-sm border transition-all ${selectedVariant?.metal_type === metal
-                                            ? 'border-deep-rose bg-deep-rose text-white'
-                                            : 'border-blush text-noir hover:border-deep-rose/50'
-                                            }`}
+                                        key={idx}
+                                        onClick={() => setActiveImage(idx)}
+                                        className={`relative aspect-square w-20 lg:w-full overflow-hidden transition-all duration-300 ${
+                                            activeImage === idx 
+                                                ? 'ring-1 ring-[#B76E79] opacity-100 bg-white' 
+                                                : 'opacity-60 hover:opacity-100 bg-white border border-[#E8DFD8]'
+                                        }`}
                                     >
-                                        {metal}
+                                        <Image
+                                            src={img.cloudinary_url}
+                                            alt={`${product.name} thumbnail ${idx + 1}`}
+                                            fill
+                                            className="object-cover"
+                                            sizes="80px"
+                                        />
                                     </button>
                                 ))}
                             </div>
-                        </div>
-                    )}
-
-                    {/* Size selector */}
-                    {sizes.length > 0 && (
-                        <div className="mb-6">
-                            <p className="text-xs text-mid uppercase tracking-wider mb-3">Size</p>
-                            <div className="flex gap-2 flex-wrap">
-                                {sizes.map((size) => {
-                                    const matchingVariant = variants.find(
-                                        (v) => v.metal_type === selectedVariant?.metal_type && v.size === size
-                                    );
-                                    return (
-                                        <button
-                                            key={size}
-                                            onClick={() => {
-                                                if (matchingVariant) setSelectedVariant(matchingVariant);
-                                            }}
-                                            className={`w-12 h-12 text-sm border transition-all flex items-center justify-center ${selectedVariant?.size === size
-                                                ? 'border-deep-rose bg-deep-rose text-white'
-                                                : 'border-blush text-noir hover:border-deep-rose/50'
-                                                }`}
-                                        >
-                                            {size}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Stock indicator */}
-                    {/* {selectedVariant && currentStock > 0 && currentStock < 5 && (
-                        <p className="text-sm text-deep-rose font-medium mb-4 flex items-center gap-1">
-                            <span className="w-2 h-2 bg-deep-rose rounded-full animate-pulse" />
-                            Only {currentStock} left in stock
-                        </p>
-                    )} */}
-
-                    {/* Add to cart & Wishlist */}
-                    <div className="flex gap-3 mb-8 mt-6">
-                        <button
-                            onClick={() => {
-                                if (!session) {
-                                    toast.error('Please sign in to add to cart');
-                                    return;
-                                }
-                                if (!selectedVariant) {
-                                    toast.error('Please select a variant');
-                                    return;
-                                }
-                                addToCartMutation.mutate();
-                            }}
-                            disabled={addToCartMutation.isPending || currentStock === 0}
-                            className="flex-1 bg-deep-rose text-white py-4 text-sm font-jost font-medium tracking-wider uppercase hover:bg-deep-rose/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {currentStock === 0 ? 'Out of Stock' : addToCartMutation.isPending ? 'Adding...' : (
-                                <><FiShoppingBag size={18} /> Add to Cart</>
+                        )}
+                        
+                        {/* Main Image */}
+                        <div className="w-full aspect-[4/5] bg-white relative overflow-hidden border border-[#E8DFD8]">
+                            {images[activeImage] ? (
+                                <Image
+                                    src={images[activeImage].cloudinary_url}
+                                    alt={product.name}
+                                    fill
+                                    priority
+                                    className="object-cover transition-opacity duration-500"
+                                    sizes="(max-width: 1024px) 100vw, 50vw"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                                    <ShoppingBag size={64} className="text-gray-300" />
+                                </div>
                             )}
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (!session) {
-                                    toast.error('Please sign in');
-                                    return;
-                                }
-                                addToWishlistMutation.mutate();
-                            }}
-                            disabled={addToWishlistMutation.isPending}
-                            className="w-14 border border-blush flex items-center justify-center text-mid hover:text-deep-rose hover:border-deep-rose/50 transition-colors"
-                            aria-label="Add to wishlist"
-                        >
-                            <FiHeart size={20} />
-                        </button>
+                        </div>
                     </div>
 
-                    {/* Trust badges */}
-                    <div className="flex items-center gap-4 text-xs text-mid mb-8 pb-8 border-b border-blush/50">
-                        {['Free Shipping'].map((badge) => (
-                            <span key={badge} className="flex items-center gap-1">
-                                <FiCheck size={12} className="text-green-600" /> {badge}
-                            </span>
-                        ))}
-                    </div>
+                    {/* 2. Product Identity & Config */}
+                    <div className="mt-10 lg:mt-0 flex flex-col pt-2 lg:pt-8">
+                        <span className="tracking-widest text-xs uppercase text-[#B76E79] font-medium mb-3">
+                            {product.category_name}
+                            {product.subcategory_name && ` · ${product.subcategory_name}`}
+                        </span>
+                        <h1 className="text-4xl lg:text-5xl font-serif text-[#1A1A1A] leading-tight mb-6">
+                            {product.name}
+                        </h1>
 
-                    {/* Accordions */}
-                    <div className="space-y-0">
-                        {accordions.map((acc) => (
-                            <div key={acc.key} className="border-b border-blush/50">
-                                <button
-                                    onClick={() => setOpenAccordion(openAccordion === acc.key ? '' : acc.key)}
-                                    className="w-full flex items-center justify-between py-4 text-left"
-                                >
-                                    <span className="text-sm font-jost font-medium text-noir">{acc.title}</span>
-                                    {openAccordion === acc.key ? (
-                                        <FiChevronUp size={16} className="text-mid" />
-                                    ) : (
-                                        <FiChevronDown size={16} className="text-mid" />
+                        {/* Pricing Display */}
+                        <div className="flex items-center gap-4 mb-10 flex-wrap">
+                            {isDiscounted ? (
+                                <>
+                                    <span className="text-3xl font-serif text-[#1A1A1A]">₹{Number(product.discounted_price).toLocaleString('en-IN')}</span>
+                                    <span className="text-lg text-gray-400 line-through">₹{Number(currentPrice).toLocaleString('en-IN')}</span>
+                                    {product.discount_text && (
+                                        <span className="bg-[#FF6B35] text-white px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-sm ml-2 relative -top-1 shadow-sm">
+                                            {product.discount_text}
+                                        </span>
                                     )}
-                                </button>
-                                {openAccordion === acc.key && (
-                                    <div className="pb-4 text-sm text-mid font-light leading-relaxed whitespace-pre-line animate-fade-in">
-                                        {acc.content}
-                                    </div>
-                                )}
+                                </>
+                            ) : (
+                                <span className="text-3xl font-serif text-[#1A1A1A]">₹{Number(currentPrice).toLocaleString('en-IN')}</span>
+                            )}
+                        </div>
+
+                        {/* 3. Configuration */}
+                        {coatings.length > 0 && (
+                            <div className="mb-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-sm uppercase tracking-wide text-gray-900 font-medium">Coating Type</span>
+                                    <span className="text-sm text-gray-500">{selectedVariant?.coating?.name || selectedVariant?.metal_type}</span>
+                                </div>
+                                <div className="flex gap-3 flex-wrap">
+  {coatings.map((coating) => {
+    const isSelected =
+      (selectedVariant?.coating?.name === coating.name) ||
+      (!selectedVariant?.coating &&
+        selectedVariant?.metal_type === coating.name);
+
+    return (
+      <button
+        key={coating.name}
+        onClick={() => {
+          const v = variants.find(
+            (v) =>
+              (v.coating && v.coating.name === coating.name) ||
+              (!v.coating && v.metal_type === coating.name)
+          );
+          if (v) setSelectedVariant(v);
+        }}
+        className={`w-10 h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
+          isSelected
+            ? "border-[#B76E79] scale-110"
+            : "border-[#E8DFD8] hover:border-[#B76E79]"
+        }`}
+        title={coating.name} // 👈 still accessible on hover
+      >
+        {coating.color_rgb !== "transparent" ? (
+          <div
+            className="w-7 h-7 rounded-full"
+            style={{ backgroundColor: coating.color_rgb }}
+          />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-gray-200" />
+        )}
+      </button>
+    );
+  })}
+</div>
                             </div>
-                        ))}
+                        )}
+
+                        {/* {sizes.length > 0 && (
+                            <div className="mb-10">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-sm uppercase tracking-wide text-gray-900 font-medium">Size</span>
+                                    <span className="text-sm text-gray-500">{selectedVariant?.size}</span>
+                                </div>
+                                <div className="flex gap-3 flex-wrap">
+                                    {sizes.map((size) => {
+                                        const matchingVariant = variants.find(
+                                            (v) => ((v.coating && selectedVariant?.coating && v.coating.name === selectedVariant.coating.name) || 
+                                                    (!v.coating && v.metal_type === selectedVariant?.metal_type)) 
+                                                   && v.size === size
+                                        );
+                                        return (
+                                            <button
+                                                key={size}
+                                                onClick={() => {
+                                                    if (matchingVariant) setSelectedVariant(matchingVariant);
+                                                }}
+                                                className={`min-w-[3rem] h-12 px-4 border text-sm transition-all duration-300 font-medium flex items-center justify-center ${
+                                                    selectedVariant?.size === size 
+                                                        ? 'border-[#B76E79] bg-[#B76E79] text-white' 
+                                                        : 'border-[#E8DFD8] text-[#5A5A5A] hover:border-[#B76E79] hover:text-[#B76E79] bg-white'
+                                                }`}
+                                            >
+                                                {size}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )} */}
+
+                        {/* 5. Call to Action */}
+                        <div className="flex gap-4 mb-12">
+                            <button 
+                                onClick={() => {
+                                    if (!session) {
+                                        toast.error('Please sign in to add to cart');
+                                        return;
+                                    }
+                                    if (!selectedVariant) {
+                                        toast.error('Please select a variant');
+                                        return;
+                                    }
+                                    addToCartMutation.mutate();
+                                }}
+                                disabled={addToCartMutation.isPending || currentStock === 0}
+                                className="flex-1 bg-[#FF6B35] hover:bg-[#E05A2A] text-white py-4 px-8 flex items-center justify-center gap-3 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ShoppingBag size={20} strokeWidth={1.5} />
+                                <span className="uppercase tracking-widest text-sm font-medium">
+                                    {currentStock === 0 ? 'Out of Stock' : addToCartMutation.isPending ? 'Adding...' : 'Add to Cart'}
+                                </span>
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    if (!session) {
+                                        toast.error('Please sign in');
+                                        return;
+                                    }
+                                    addToWishlistMutation.mutate();
+                                }}
+                                disabled={addToWishlistMutation.isPending}
+                                className="w-14 h-14 flex items-center justify-center border border-[#E8DFD8] hover:border-[#B76E79] hover:text-[#B76E79] transition-colors duration-300 bg-white"
+                                aria-label="Add to wishlist"
+                            >
+                                <Heart size={20} className={addToWishlistMutation.isPending ? "animate-pulse" : ""} strokeWidth={1.5} />
+                            </button>
+                        </div>
+
+                        {/* 4. Product Information (Clean, Non-boxy layout) */}
+                        <div className="space-y-10 border-t border-[#E8DFD8] pt-10">
+                            
+                            {product.description && (
+                                <div className="space-y-3">
+                                    <h3 className="text-sm uppercase tracking-widest font-semibold text-[#1A1A1A]">Description</h3>
+                                    <p className="text-[#5A5A5A] leading-relaxed text-sm whitespace-pre-line">
+                                        {product.description}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                <h3 className="text-sm uppercase tracking-widest font-semibold text-[#1A1A1A]">Details</h3>
+                                <ul className="text-[#5A5A5A] space-y-2 text-sm">
+                                    <li><span className="font-medium text-gray-800">Material:</span> {selectedVariant?.coating?.name || selectedVariant?.metal_type || 'Selected variant'}</li>
+                                    <li><span className="font-medium text-gray-800">Purity:</span> BIS Hallmarked</li>
+                                    <li><span className="font-medium text-gray-800">Certification:</span> HUID Certified</li>
+                                </ul>
+                            </div>
+
+                            {product.styling && (
+                                <div className="space-y-3">
+                                    <h3 className="text-sm uppercase tracking-widest font-semibold text-[#1A1A1A]">Styling</h3>
+                                    <p className="text-[#5A5A5A] leading-relaxed text-sm whitespace-pre-line">
+                                        {product.styling}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                <h3 className="text-sm uppercase tracking-widest font-semibold text-[#1A1A1A]">Shipping & Returns</h3>
+                                <p className="text-[#5A5A5A] leading-relaxed text-sm">
+                                    Free Shipping on all orders. Final Sale: No Returns.
+                                </p>
+                            </div>
+
+                        </div>
+
+                        {/* Trust Bar */}
+                        <div className="mt-12 py-6 border-y border-[#E8DFD8] flex justify-center items-center gap-10">
+
+                            <div className="flex flex-col items-center gap-2 group cursor-default">
+                                <FiTruck size={22} className="text-[#B76E79]" />
+                                <span className="text-[10px] uppercase tracking-wider text-gray-500">
+                                    Free Delivery
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-center gap-2 group cursor-default">
+                                <Lock size={22} className="text-[#B76E79]" strokeWidth={1.5} />
+                                <span className="text-[10px] uppercase tracking-wider text-gray-500">Secure Checkout</span>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

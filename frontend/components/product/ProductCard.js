@@ -54,9 +54,16 @@ export default function ProductCard({ product }) {
                     <h3 className="font-cormorant text-lg text-noir group-hover:text-deep-rose transition-colors line-clamp-2">
                         {product.name}
                     </h3>
-                    <p className="mt-1.5 font-jost text-sm font-medium text-noir">
-                        ₹{Number(price).toLocaleString('en-IN')}
-                    </p>
+                    <div className="mt-1.5 font-jost text-sm font-medium flex items-center gap-2">
+                        {product.discounted_price ? (
+                            <>
+                                <span className="text-[#FF6B35]">₹{Number(product.discounted_price).toLocaleString('en-IN')}</span>
+                                <span className="text-mid line-through text-xs">₹{Number(price).toLocaleString('en-IN')}</span>
+                            </>
+                        ) : (
+                            <span className="text-noir">₹{Number(price).toLocaleString('en-IN')}</span>
+                        )}
+                    </div>
                 </div>
             </Link>
         </motion.div>
