@@ -276,7 +276,7 @@ export default function ProductDetailClient({ product }) {
                                     </p>
                                 </div>
                             )}
-
+{/* 
                             <div className="space-y-3">
                                 <h3 className="text-sm uppercase tracking-widest font-semibold text-[#1A1A1A]">Details</h3>
                                 <ul className="text-[#5A5A5A] space-y-2 text-sm">
@@ -284,7 +284,7 @@ export default function ProductDetailClient({ product }) {
                                     <li><span className="font-medium text-gray-800">Purity:</span> BIS Hallmarked</li>
                                     <li><span className="font-medium text-gray-800">Certification:</span> HUID Certified</li>
                                 </ul>
-                            </div>
+                            </div> */}
 
                             {product.styling && (
                                 <div className="space-y-3">
