@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { ShoppingBag, Heart, ShieldCheck, Award, Lock } from 'lucide-react';
@@ -15,14 +15,34 @@ export default function ProductDetailClient({ product }) {
     const { openCart } = useCart();
     const queryClient = useQueryClient();
 
-    const [selectedVariant, setSelectedVariant] = useState(null);
+    const [selectedVariantId, setSelectedVariantId] = useState(null);
     const [activeImage, setActiveImage] = useState(0);
 
+    // Live query to always fetch the latest real-time stock, bypassing Next.js edge cache
+    const { data: liveProduct } = useQuery({
+        queryKey: ['product-live', product?.id],
+        queryFn: async () => {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${product.id}/`, {
+                cache: 'no-store'
+            });
+            const data = await res.json();
+            return data.data;
+        },
+        enabled: !!product?.id,
+        staleTime: 0, // always considered stale, fetched immediately or in background on mount
+    });
+
+    const activeProduct = liveProduct || product;
+
+    // Default variant to the first one available
     useEffect(() => {
-        if (product?.variants?.length > 0 && !selectedVariant) {
-            setSelectedVariant(product.variants[0]);
+        if (activeProduct?.variants?.length > 0 && !selectedVariantId) {
+            setSelectedVariantId(activeProduct.variants[0].id);
         }
-    }, [product, selectedVariant]);
+    }, [activeProduct, selectedVariantId]);
+
+    const variants = activeProduct?.variants || [];
+    const selectedVariant = variants.find(v => v.id === selectedVariantId) || null;
 
     const addToCartMutation = useMutation({
         mutationFn: () => cartAPI.addItem({ variant_id: selectedVariant.id, quantity: 1 }),
@@ -43,10 +63,9 @@ export default function ProductDetailClient({ product }) {
         onError: (err) => toast.error(err.response?.data?.error || 'Already in wishlist'),
     });
 
-    if (!product) return null;
+    if (!activeProduct) return null;
 
-    const images = product.images || [];
-    const variants = product.variants || [];
+    const images = activeProduct.images || [];
     const coatingsMap = new Map();
     variants.forEach(v => {
         if (v.coating && !coatingsMap.has(v.coating.name)) {
@@ -65,9 +84,9 @@ export default function ProductDetailClient({ product }) {
           ).map((v) => v.size).filter(Boolean))]
         : [];
 
-    const currentPrice = selectedVariant?.price || product.base_price;
+    const currentPrice = activeProduct.base_price;
     const currentStock = selectedVariant?.stock || 0;
-    const isDiscounted = !!product.discounted_price;
+    const isDiscounted = !!activeProduct.discounted_price && Number(activeProduct.discounted_price) > 0;
 
     return (
         <div className="min-h-screen bg-[#FCF9F6] text-[#2D2D2D] font-sans selection:bg-[#B76E79] selection:text-white pb-20">
@@ -106,7 +125,7 @@ export default function ProductDetailClient({ product }) {
                             {images[activeImage] ? (
                                 <Image
                                     src={images[activeImage].cloudinary_url}
-                                    alt={product.name}
+                                    alt={activeProduct.name}
                                     fill
                                     priority
                                     className="object-cover transition-opacity duration-500"
@@ -123,22 +142,22 @@ export default function ProductDetailClient({ product }) {
                     {/* 2. Product Identity & Config */}
                     <div className="mt-10 lg:mt-0 flex flex-col pt-2 lg:pt-8">
                         <span className="tracking-widest text-xs uppercase text-[#B76E79] font-medium mb-3">
-                            {product.category_name}
-                            {product.subcategory_name && ` · ${product.subcategory_name}`}
+                            {activeProduct.category_name}
+                            {activeProduct.subcategory_name && ` · ${activeProduct.subcategory_name}`}
                         </span>
                         <h1 className="text-4xl lg:text-5xl font-serif text-[#1A1A1A] leading-tight mb-6">
-                            {product.name}
+                            {activeProduct.name}
                         </h1>
 
                         {/* Pricing Display */}
                         <div className="flex items-center gap-4 mb-10 flex-wrap">
                             {isDiscounted ? (
                                 <>
-                                    <span className="text-3xl font-serif text-[#1A1A1A]">₹{Number(product.discounted_price).toLocaleString('en-IN')}</span>
+                                    <span className="text-3xl font-serif text-[#1A1A1A]">₹{Number(activeProduct.discounted_price).toLocaleString('en-IN')}</span>
                                     <span className="text-lg text-gray-400 line-through">₹{Number(currentPrice).toLocaleString('en-IN')}</span>
-                                    {product.discount_text && (
+                                    {activeProduct.discount_text && (
                                         <span className="bg-[#FF6B35] text-white px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-sm ml-2 relative -top-1 shadow-sm">
-                                            {product.discount_text}
+                                            {activeProduct.discount_text}
                                         </span>
                                     )}
                                 </>
@@ -162,32 +181,36 @@ export default function ProductDetailClient({ product }) {
         selectedVariant?.metal_type === coating.name);
 
     return (
-      <button
-        key={coating.name}
-        onClick={() => {
-          const v = variants.find(
-            (v) =>
-              (v.coating && v.coating.name === coating.name) ||
-              (!v.coating && v.metal_type === coating.name)
-          );
-          if (v) setSelectedVariant(v);
-        }}
-        className={`w-10 h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
-          isSelected
-            ? "border-[#B76E79] scale-110"
-            : "border-[#E8DFD8] hover:border-[#B76E79]"
-        }`}
-        title={coating.name} // 👈 still accessible on hover
-      >
-        {coating.color_rgb !== "transparent" ? (
-          <div
-            className="w-7 h-7 rounded-full"
-            style={{ backgroundColor: coating.color_rgb }}
-          />
-        ) : (
-          <div className="w-7 h-7 rounded-full bg-gray-200" />
-        )}
-      </button>
+      <div key={coating.name} className="flex flex-col items-center gap-1">
+        <button
+          onClick={() => {
+            const v = variants.find(
+              (v) =>
+                (v.coating && v.coating.name === coating.name) ||
+                (!v.coating && v.metal_type === coating.name)
+            );
+            if (v) setSelectedVariantId(v.id);
+          }}
+          className={`w-10 h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
+            isSelected
+              ? "border-[#B76E79] scale-110"
+              : "border-[#E8DFD8] hover:border-[#B76E79]"
+          }`}
+          title={coating.name}
+        >
+          {coating.color_rgb !== "transparent" ? (
+            <div
+              className="w-7 h-7 rounded-full"
+              style={{ backgroundColor: coating.color_rgb }}
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-gray-200" />
+          )}
+        </button>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+          {coating.name.split(' ')[0]}
+        </span>
+      </div>
     );
   })}
 </div>
@@ -268,11 +291,11 @@ export default function ProductDetailClient({ product }) {
                         {/* 4. Product Information (Clean, Non-boxy layout) */}
                         <div className="space-y-10 border-t border-[#E8DFD8] pt-10">
                             
-                            {product.description && (
+                            {activeProduct.description && (
                                 <div className="space-y-3">
                                     <h3 className="text-sm uppercase tracking-widest font-semibold text-[#1A1A1A]">Description</h3>
                                     <p className="text-[#5A5A5A] leading-relaxed text-sm whitespace-pre-line">
-                                        {product.description}
+                                        {activeProduct.description}
                                     </p>
                                 </div>
                             )}
@@ -286,11 +309,11 @@ export default function ProductDetailClient({ product }) {
                                 </ul>
                             </div> */}
 
-                            {product.styling && (
+                            {activeProduct.styling && (
                                 <div className="space-y-3">
                                     <h3 className="text-sm uppercase tracking-widest font-semibold text-[#1A1A1A]">Styling</h3>
                                     <p className="text-[#5A5A5A] leading-relaxed text-sm whitespace-pre-line">
-                                        {product.styling}
+                                        {activeProduct.styling}
                                     </p>
                                 </div>
                             )}

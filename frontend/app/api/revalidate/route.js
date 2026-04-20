@@ -19,6 +19,10 @@ export async function POST(request) {
         // Revalidate the overall products pages as well
         revalidatePath('/products');
         revalidatePath('/categories/[slug]', 'page');
+        
+        // Product detail pages are pre-rendered routes, so we use 'page' layout
+        // However, Next.js 'page' option can bust the entire dynamic route pattern
+        revalidatePath('/products/[id]', 'page');
 
         return new Response(JSON.stringify({
             revalidated: true,

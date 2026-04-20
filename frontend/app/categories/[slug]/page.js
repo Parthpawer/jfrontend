@@ -1,5 +1,5 @@
-import ProductCard from '@/components/product/ProductCard';
-import Link from 'next/link';
+import { Suspense } from 'react';
+import CategoryPageClient from '@/components/product/CategoryPageClient';
 
 // Cache all category pages for 1 hour
 export const revalidate = 3600;
@@ -21,99 +21,16 @@ export async function generateStaticParams() {
     }
 }
 
-async function getCategoryProducts(slug, sub) {
-    try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (!apiUrl) return [];
-        const url = new URL(`${apiUrl}/categories/${slug}/products/`);
-        if (sub) url.searchParams.append('sub', sub);
-        const res = await fetch(url.toString(), {
-            next: { tags: ['products'] }
-        });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.data?.results || data.data || [];
-    } catch (e) {
-        return [];
-    }
-}
-
-async function getSubcategories(slug) {
-    try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (!apiUrl) return [];
-        const res = await fetch(`${apiUrl}/categories/${slug}/subcategories/`, {
-            next: { tags: ['categories'] }
-        });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.data || [];
-    } catch (e) {
-        return [];
-    }
-}
-
-export default async function CategoryPage({ params, searchParams }) {
-    const { slug } = params;
-
-    // Server-side fetching — runs strictly on the Edge/Server!
-    const [products, subs] = await Promise.all([
-        getCategoryProducts(slug, searchParams?.sub),
-        getSubcategories(slug)
-    ]);
-
-    const categoryName = slug.charAt(0).toUpperCase() + slug.slice(1);
-
+export default function CategoryPage() {
     return (
-        <div className="max-w-7xl mx-auto px-4 py-12">
-            {/* Header */}
-            <div className="text-center mb-10">
-                <p className="text-gold text-sm tracking-[0.3em] uppercase font-jost font-light mb-3">Collection</p>
-                <h1 className="font-cormorant text-4xl sm:text-5xl text-noir">{categoryName}</h1>
-            </div>
-
-            {/* Subcategories Filters */}
-            {subs.length > 0 && (
-                <div className="flex items-center justify-center gap-3 mb-10 flex-wrap">
-                    <Link
-                        href={`/categories/${slug}`}
-                        className={`px-5 py-2 text-sm font-jost tracking-wide transition-colors ${!searchParams?.sub
-                                ? 'bg-deep-rose text-white'
-                                : 'border border-blush text-mid hover:text-noir hover:border-deep-rose/30'
-                            }`}
-                    >
-                        All
-                    </Link>
-                    {subs.map((sub) => (
-                        <Link
-                            key={sub.id}
-                            href={`/categories/${slug}?sub=${sub.slug}`}
-                            className={`px-5 py-2 text-sm font-jost tracking-wide transition-colors ${searchParams?.sub === sub.slug
-                                    ? 'bg-deep-rose text-white'
-                                    : 'border border-blush text-mid hover:text-noir hover:border-deep-rose/30'
-                                }`}
-                        >
-                            {sub.name}
-                        </Link>
-                    ))}
+        <Suspense
+            fallback={
+                <div className="min-h-screen pt-24 pb-16 bg-white flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full border-t-2 border-r-2 border-deep-rose animate-spin" />
                 </div>
-            )}
-
-            {/* Products grid */}
-            {products.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {products.map((product) => (
-                        <ProductCard key={product.id} product={product} />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-20">
-                    <p className="text-mid font-light text-lg">No products found in this collection</p>
-                    <Link href="/categories" className="inline-block mt-4 text-deep-rose text-sm hover:underline">
-                        Browse all collections
-                    </Link>
-                </div>
-            )}
-        </div>
+            }
+        >
+            <CategoryPageClient />
+        </Suspense>
     );
 }

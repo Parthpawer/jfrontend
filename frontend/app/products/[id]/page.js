@@ -3,7 +3,7 @@ import ProductDetailClient from '@/components/product/ProductDetailClient';
 // Cache all product pages for 1 hour
 export const revalidate = 3600;
 
-// Pre-build product routes at deploy time
+// Pre-build product routes at deploy time using UUID primary keys
 export async function generateStaticParams() {
     try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/`);
@@ -11,7 +11,7 @@ export async function generateStaticParams() {
         const data = await res.json();
         const products = data.data?.results || data.data || [];
         return products.map((p) => ({
-            id: p.slug,
+            id: String(p.id),  // UUID — must match Django route <uuid:pk>
         }));
     } catch (e) {
         return [];

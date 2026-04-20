@@ -3,74 +3,39 @@ import { FiArrowRight } from 'react-icons/fi';
 import HeroSliderClient from '@/components/home/HeroSliderClient';
 import HappyCustomersClient from '@/components/home/HappyCustomersClient';
 import ProductCard from '@/components/product/ProductCard';
+import PromoBanner from '@/components/home/PromoBanner';
 
 // Primary strategy: on-demand tag revalidation from backend.
 // Safety fallback: auto-refresh every 60s if webhook revalidation fails.
 export const revalidate = 60;
 
-async function getHeroSliders() {
+/**
+ * Single aggregated fetch for all homepage data.
+ * Replaces 5 separate API round-trips with 1.
+ */
+async function getHomepageData() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/hero/`, {
-            next: { tags: ['hero'] },
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/all/`, {
+            next: { tags: ['hero', 'products', 'instagram'] },
         });
-        if (!res.ok) return [];
+        if (!res.ok) return null;
         const json = await res.json();
-        return json.data?.results || json.data || [];
-    } catch (e) { return []; }
-}
-
-async function getBestsellers() {
-    try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/bestsellers/`, {
-            next: { tags: ['products'] },
-        });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json.data?.results || json.data || [];
-    } catch (e) { return []; }
-}
-
-async function getQuickPicks() {
-    try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/quick-picks/`, {
-            next: { tags: ['products'] },
-        });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json.data?.results || json.data || [];
-    } catch (e) { return []; }
-}
-
-async function getNewArrivals() {
-    try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/new-arrivals/`, {
-            next: { tags: ['products'] },
-        });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json.data?.results || json.data || [];
-    } catch (e) { return []; }
-}
-
-async function getInstagramPosts() {
-    try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/homepage/instagram/`, {
-            next: { tags: ['instagram'] },
-        });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json.data?.results || json.data || [];
-    } catch (e) { return []; }
+        return json.data || null;
+    } catch (e) {
+        return null;
+    }
 }
 
 export default async function HomePage() {
-    const [heroSlides, bestSellers, quickPicks, newArrivals, instaPosts] = await Promise.all([
-        getHeroSliders(),
-        getBestsellers(),
-        getQuickPicks(),
-        getNewArrivals(),
-        getInstagramPosts()
-    ]);
+    const homepageData = await getHomepageData();
+
+    const heroSlides    = homepageData?.hero_sliders   ?? [];
+    const bestSellers   = homepageData?.bestsellers    ?? [];
+    const quickPicks    = homepageData?.quick_picks    ?? [];
+    const newArrivals   = homepageData?.new_arrivals   ?? [];
+    const instaPosts    = homepageData?.instagram_posts ?? [];
+
+
 
     const features = [
         {
@@ -107,7 +72,7 @@ export default async function HomePage() {
                         <h2 className="font-cormorant text-3xl md:text-5xl text-noir mb-3">Top Picks</h2>
                         <p className="text-mid font-light font-jost text-sm md:text-base">Our best-selling masterpieces, curated just for you.</p>
                     </div>
-                    <Link href="/products" className="hidden sm:flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir hover:text-deep-rose transition-colors">
+                    <Link href="/products?filter=bestseller" className="hidden sm:flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir hover:text-deep-rose transition-colors">
                         View All <FiArrowRight />
                     </Link>
                 </div>
@@ -123,7 +88,7 @@ export default async function HomePage() {
                 </div>
 
                 <div className="mt-8 text-center sm:hidden">
-                    <Link href="/products" className="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir border-b border-noir pb-1 hover:text-deep-rose hover:border-deep-rose transition-colors">
+                    <Link href="/products?filter=bestseller" className="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir border-b border-noir pb-1 hover:text-deep-rose hover:border-deep-rose transition-colors">
                         View All <FiArrowRight />
                     </Link>
                 </div>
@@ -136,7 +101,7 @@ export default async function HomePage() {
                         <h2 className="font-cormorant text-3xl md:text-5xl text-noir mb-3">Explore</h2>
                         <p className="text-mid font-light font-jost text-sm md:text-base">Handpicked favorites selected by our experts.</p>
                     </div>
-                    <Link href="/products" className="hidden sm:flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir hover:text-deep-rose transition-colors">
+                    <Link href="/products?filter=quick_pick" className="hidden sm:flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir hover:text-deep-rose transition-colors">
                         View All <FiArrowRight />
                     </Link>
                 </div>
@@ -152,11 +117,14 @@ export default async function HomePage() {
                 </div>
 
                 <div className="mt-8 text-center sm:hidden">
-                    <Link href="/products" className="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir border-b border-noir pb-1 hover:text-deep-rose hover:border-deep-rose transition-colors">
+                    <Link href="/products?filter=quick_pick" className="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir border-b border-noir pb-1 hover:text-deep-rose hover:border-deep-rose transition-colors">
                         View All <FiArrowRight />
                     </Link>
                 </div>
             </section>
+
+            {/* Promotional Banner */}
+            <PromoBanner />
 
             {/* 3. New Arrivals */}
             <section className="pb-20 lg:pb-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -165,7 +133,7 @@ export default async function HomePage() {
                         <h2 className="font-cormorant text-3xl md:text-5xl text-noir mb-3">New Arrivals</h2>
                         <p className="text-mid font-light font-jost text-sm md:text-base">Discover our latest handcrafted masterpieces.</p>
                     </div>
-                    <Link href="/products?sort=new" className="hidden sm:flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir hover:text-deep-rose transition-colors">
+                    <Link href="/products?filter=new_arrival" className="hidden sm:flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir hover:text-deep-rose transition-colors">
                         View All <FiArrowRight />
                     </Link>
                 </div>
@@ -181,7 +149,7 @@ export default async function HomePage() {
                 </div>
 
                 <div className="mt-8 text-center sm:hidden">
-                    <Link href="/products?sort=new" className="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir border-b border-noir pb-1 hover:text-deep-rose hover:border-deep-rose transition-colors">
+                    <Link href="/products?filter=new_arrival" className="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-noir border-b border-noir pb-1 hover:text-deep-rose hover:border-deep-rose transition-colors">
                         View All <FiArrowRight />
                     </Link>
                 </div>

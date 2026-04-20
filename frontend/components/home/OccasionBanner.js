@@ -29,7 +29,7 @@ const occasions = [
 
 export default function OccasionBanner() {
     return (
-        <section className="py-20 px-4">
+        <section className="py-10 md:py-20 px-4">
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-14">
                     <p className="text-gold text-sm tracking-[0.3em] uppercase font-jost font-light mb-3">
@@ -51,7 +51,7 @@ export default function OccasionBanner() {
                         >
                             <Link
                                 href={item.href}
-                                className={`group block bg-gradient-to-br ${item.gradient} p-10 md:p-12 text-center hover:shadow-2xl transition-all duration-500 relative overflow-hidden`}
+                                className={`group block bg-gradient-to-br ${item.gradient} py-6 px-4 md:p-12 text-center hover:shadow-2xl transition-all duration-500 relative overflow-hidden`}
                             >
                                 <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-500" />
                                 <div className="relative z-10">

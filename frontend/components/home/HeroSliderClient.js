@@ -19,19 +19,18 @@ export default function HeroSliderClient({ slides }) {
 
     if (!slides || slides.length === 0) {
         return (
-            <div className="w-full h-[70vh] bg-petal flex items-center justify-center">
+            <div className="w-full h-[45vh] sm:h-[55vh] md:h-[65vh] lg:h-[75vh] xl:h-[85vh] bg-petal flex items-center justify-center">
                 <h1 className="font-cormorant text-4xl text-noir">Welcome to Tvisaa</h1>
             </div>
         );
     }
 
     return (
-        <section className="relative w-full h-[85vh] overflow-hidden bg-noir">
+        <section className="relative w-full h-[45vh] sm:h-[55vh] md:h-[65vh] lg:h-[75vh] xl:h-[85vh] overflow-hidden bg-noir">
             {slides.map((slide, index) => (
                 <div
                     key={slide.id}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                        }`}
+                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                 >
                     <Image
                         src={slide.cloudinary_url}

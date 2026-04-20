@@ -28,12 +28,20 @@ async function fetchWrapper(endpoint, options = {}) {
         }
     }
 
+    const method = options.method || 'GET';
+    const isGet = method === 'GET';
+
     const headers = {
-        'Content-Type': 'application/json',
+        // Only set Content-Type on requests that have a body.
+        // Sending it on GET causes a CORS preflight OPTIONS round-trip.
+        ...(!isGet && { 'Content-Type': 'application/json' }),
         ...options.headers,
     };
 
-    if (typeof window !== 'undefined') {
+    // Only call getSession on the client, and only for non-GET requests
+    // (or GETs that explicitly pass an Authorization header override).
+    // This avoids a getSession() call on every public product/category fetch.
+    if (typeof window !== 'undefined' && (!isGet || options.headers?.Authorization)) {
         const session = await getSession();
         if (session?.accessToken) {
             headers.Authorization = `Bearer ${session.accessToken}`;
@@ -41,7 +49,7 @@ async function fetchWrapper(endpoint, options = {}) {
     }
 
     const config = {
-        method: options.method || 'GET',
+        method,
         headers,
     };
 
@@ -123,9 +131,14 @@ export const authAPI = {
 export const productsAPI = {
     getProducts: (params) => api.get('/products/', { params }),
     getProduct: (id) => api.get(`/products/${id}/`),
+    // ── Homepage — single aggregated call (replaces 5 round-trips) ──────────
+    getHomepageData: () => api.get('/products/homepage/all/'),
+    // ── Individual homepage endpoints (kept for non-homepage consumers) ─────
     getHeroSliders: () => api.get('/products/homepage/hero/'),
     getInstagramPosts: () => api.get('/products/homepage/instagram/'),
     getBestSellers: () => api.get('/products/homepage/bestsellers/'),
+    getQuickPicks: () => api.get('/products/homepage/quick-picks/'),
+    getNewArrivals: () => api.get('/products/homepage/new-arrivals/'),
     getCategories: () => api.get('/categories/'),
     getCategoryProducts: (slug, params) => api.get(`/categories/${slug}/products/`, { params }),
     getCategorySubcategories: (slug) => api.get(`/categories/${slug}/subcategories/`),

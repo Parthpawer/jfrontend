@@ -6,7 +6,7 @@ import { FiHeart, FiShoppingBag } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
 export default function ProductCard({ product }) {
-    const price = product.min_price || product.base_price;
+    const price = product.base_price;
 
     return (
         <motion.div
@@ -55,7 +55,7 @@ export default function ProductCard({ product }) {
                         {product.name}
                     </h3>
                     <div className="mt-1.5 font-jost text-sm font-medium flex items-center gap-2">
-                        {product.discounted_price ? (
+                        {(product.discounted_price && Number(product.discounted_price) > 0) ? (
                             <>
                                 <span className="text-[#FF6B35]">₹{Number(product.discounted_price).toLocaleString('en-IN')}</span>
                                 <span className="text-mid line-through text-xs">₹{Number(price).toLocaleString('en-IN')}</span>
