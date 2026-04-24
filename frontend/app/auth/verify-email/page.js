@@ -132,7 +132,7 @@ function VerifyEmailContent() {
     return (
         <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
             <div className="w-full max-w-md text-center">
-                <Image src="/images/logo.png" alt="Lumière Jewels" width={160} height={40} className="h-10 w-auto mx-auto mb-8" />
+                <Image src="/images/logo.jpeg" alt="Lumière Jewels" width={160} height={40} className="h-10 w-auto mx-auto mb-8" />
 
                 {/* Mail icon */}
                 <div className="w-16 h-16 bg-petal rounded-full flex items-center justify-center mx-auto mb-6">

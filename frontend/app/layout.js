@@ -36,7 +36,7 @@ export default function RootLayout({ children }) {
     return (
         <html lang="en" className={`${cormorant.variable} ${jost.variable}`}>
             <head>
-                <link rel="icon" href="/images/logo.png" />
+                <link rel="icon" href="/images/logo.jpeg" />
             </head>
             <body className="font-jost bg-petal text-noir antialiased">
                 <Providers>

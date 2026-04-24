@@ -79,7 +79,7 @@ export default function Navbar() {
                         {/* Logo */}
                         <Link href="/" className="flex-shrink-0">
                             <Image
-                                src="/images/logo.png"
+                                src="/images/logo.jpeg"
                                 alt="Lumière Jewels"
                                 width={160}
                                 height={40}
